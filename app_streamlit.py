@@ -13,18 +13,27 @@ st.set_page_config(
 )
 
 LOCAL_BASE = "/Users/aaryabalumalghe/yolo_multitask/models"
+CLOUD_BASE = "/mount/src/yolo-multitask-vision/models"
+if os.path.exists(LOCAL_BASE):
+    BASE = LOCAL_BASE
+elif os.path.exists(CLOUD_BASE):
+    BASE = CLOUD_BASE
+else:
+    BASE = "models"
 IS_LOCAL = os.path.exists(LOCAL_BASE)
 
 @st.cache_resource
 def load_models():
-    if IS_LOCAL:
+    if os.path.exists(f"{BASE}/detect_best.pt"):
+        st.sidebar.success("Using trained models")
         return {
-            "detection":      YOLO(f"{LOCAL_BASE}/detect_best.pt"),
-            "classification": YOLO(f"{LOCAL_BASE}/classify_best.pt"),
-            "pose":           YOLO(f"{LOCAL_BASE}/pose_best.pt"),
-            "obb":            YOLO(f"{LOCAL_BASE}/obb_best.pt"),
+            "detection":      YOLO(f"{BASE}/detect_best.pt"),
+            "classification": YOLO(f"{BASE}/classify_best.pt"),
+            "pose":           YOLO(f"{BASE}/pose_best.pt"),
+            "obb":            YOLO(f"{BASE}/obb_best.pt"),
         }
     else:
+        st.sidebar.info("Using pretrained YOLOv8n models")
         return {
             "detection":      YOLO("yolov8n.pt"),
             "classification": YOLO("yolov8n-cls.pt"),
