@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+runs/
+*.cache
+datasets/
+*.pt
+static/uploads/
+*.jpg
+*.jpeg
+*.png
+output_*.jpg
