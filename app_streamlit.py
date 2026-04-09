@@ -12,16 +12,25 @@ st.set_page_config(
     layout="wide"
 )
 
-BASE = "/Users/aaryabalumalghe/yolo_multitask/models"
+LOCAL_BASE = "/Users/aaryabalumalghe/yolo_multitask/models"
+IS_LOCAL = os.path.exists(LOCAL_BASE)
 
 @st.cache_resource
 def load_models():
-    return {
-        "detection":      YOLO(f"{BASE}/detect_best.pt"),
-        "classification": YOLO(f"{BASE}/classify_best.pt"),
-        "pose":           YOLO(f"{BASE}/pose_best.pt"),
-        "obb":            YOLO(f"{BASE}/obb_best.pt"),
-    }
+    if IS_LOCAL:
+        return {
+            "detection":      YOLO(f"{LOCAL_BASE}/detect_best.pt"),
+            "classification": YOLO(f"{LOCAL_BASE}/classify_best.pt"),
+            "pose":           YOLO(f"{LOCAL_BASE}/pose_best.pt"),
+            "obb":            YOLO(f"{LOCAL_BASE}/obb_best.pt"),
+        }
+    else:
+        return {
+            "detection":      YOLO("yolov8n.pt"),
+            "classification": YOLO("yolov8n-cls.pt"),
+            "pose":           YOLO("yolov8n-pose.pt"),
+            "obb":            YOLO("yolov8n-obb.pt"),
+        }
 
 models = load_models()
 
@@ -71,16 +80,17 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
+mode_label = "Local — Apple M4 (trained models)" if IS_LOCAL else "Streamlit Cloud — pretrained YOLOv8n"
+
+st.markdown(f"""
 <div class="main-header">
   <h1>YOLO Multi-Task Vision System</h1>
-  <p>Deep Learning Lab Assignment — Local Deployment on Apple M4</p>
+  <p>Deep Learning Lab Assignment — {mode_label}</p>
   <div style="margin-top:10px">
     <span class="badge">YOLOv8n</span>
-    <span class="badge">Apple M4 MPS</span>
     <span class="badge">4 Tasks</span>
-    <span class="badge">Ultralytics 8.4.36</span>
-    <span class="badge">PyTorch 2.11.0</span>
+    <span class="badge">Ultralytics</span>
+    <span class="badge">{"Apple M4 MPS" if IS_LOCAL else "Streamlit Cloud"}</span>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -140,12 +150,10 @@ with col_right:
 
         if task_key == "classification":
             st.success("Classification complete!")
-
-            # get names dict and probability tensor
-            names = r.names          # {0: 'Healthy', 1: 'Powdery', 2: 'Rust'}
-            probs = r.probs          # Probs object
-            top5_indices = probs.top5   # list of top-5 class indices
-            top5_confs   = probs.top5conf.tolist()  # corresponding confidences
+            names        = r.names
+            probs        = r.probs
+            top5_indices = probs.top5
+            top5_confs   = probs.top5conf.tolist()
 
             st.markdown("**Top predictions:**")
             for idx, conf in zip(top5_indices, top5_confs):
@@ -157,15 +165,13 @@ with col_right:
                     f'</div>',
                     unsafe_allow_html=True
                 )
-
             st.image(image, caption="Input image", use_container_width=True)
 
         elif task_key == "pose":
-            annotated = r.plot()
+            annotated     = r.plot()
             annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
             st.image(annotated_rgb, caption="Pose estimation output", use_container_width=True)
             st.success("Pose estimation complete!")
-
             boxes = r.boxes
             st.markdown(f"**{len(boxes)} person(s) detected**")
             for i, box in enumerate(boxes):
@@ -178,18 +184,16 @@ with col_right:
                     unsafe_allow_html=True
                 )
             if r.keypoints is not None:
-                kpts = r.keypoints.data
-                st.info(f"17 keypoints detected per person (COCO format)")
+                st.info("17 keypoints detected per person (COCO format)")
 
         elif task_key == "detection":
-            annotated = r.plot()
+            annotated     = r.plot()
             annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
             st.image(annotated_rgb, caption="Detection output", use_container_width=True)
             st.success("Vehicle detection complete!")
-
             boxes = r.boxes
             if boxes is not None and len(boxes) > 0:
-                st.markdown(f"**{len(boxes)} vehicle(s) detected**")
+                st.markdown(f"**{len(boxes)} object(s) detected**")
                 for box in boxes:
                     cls_name = r.names[int(box.cls)]
                     conf     = float(box.conf)
@@ -201,14 +205,13 @@ with col_right:
                         unsafe_allow_html=True
                     )
             else:
-                st.info("No vehicles detected — try a clearer traffic image.")
+                st.info("No objects detected — try a different image.")
 
         elif task_key == "obb":
-            annotated = r.plot()
+            annotated     = r.plot()
             annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
             st.image(annotated_rgb, caption="OBB detection output", use_container_width=True)
             st.success("Text detection (OBB) complete!")
-
             obbs = r.obb
             if obbs is not None and len(obbs) > 0:
                 st.markdown(f"**{len(obbs)} text region(s) detected**")
