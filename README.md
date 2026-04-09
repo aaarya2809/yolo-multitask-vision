@@ -39,7 +39,7 @@ python train_obb.py
 
 ## Run Streamlit App
 ```bash
-streamlit run app_streamlit.py
+https://yolo-multitask-vision.streamlit.app/
 ```
 
 ## Run Flask App
